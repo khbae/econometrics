@@ -1,0 +1,154 @@
+---
+title: "Estimate standard errors clustered by firm and time (Petersen, RFS 2009)"
+output: html_document
+---
+
+<style type="text/css">
+
+body{ /* Normal  */
+      font-size: 18px;
+      font-family: "Times New Roman", Times, serif;
+  }
+td {  /* Table  */
+  font-size: 20px;
+}
+h1.title {
+  font-size: 24px;
+  color: DarkBlue;
+}
+h1 { /* Header 1 */
+  font-size: 22px;
+  color: DarkBlue;
+}
+h2 { /* Header 2 */
+    font-size: 22px;
+  color: DarkBlue;
+}
+h3 { /* Header 3 */
+  font-size: 22px;
+  font-family: "Times New Roman", Times, serif;
+  color: DarkBlue;
+}
+code.r{ /* Code block */
+    font-size: 16px;
+}
+pre { /* Code block - determines code spacing between lines */
+    font-size: 16px;
+}
+</style>
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Reference
+
+- https://academic.oup.com/rfs/article-abstract/22/1/435/1585940?redirectedFrom=fulltext
+- https://www.kellogg.northwestern.edu/faculty/petersen/htm/papers/standarderror.html
+
+
+This note demonstrates how to calculate standard errors clustered by firm and time in R project, following Petersen (RFS, 2009).
+
+```{r, message=FALSE}
+rm(list=ls());
+library(sandwich);
+library(plm);
+library(lmtest);
+library(stargazer);
+```
+
+- Data source: http://www.kellogg.northwestern.edu/faculty/petersen/htm/papers/se/test_data.txt
+
+```{r}
+df <- read.csv(file="01_Data/test_data.txt")
+summary(df)
+```
+## OLS
+
+```{r}
+reg0 = lm(y~x, data=df)
+ols = coeftest(reg0)
+ols
+```
+
+## OLS with White Standard Errors
+
+- https://en.wikipedia.org/wiki/Heteroscedasticity-consistent_standard_errors
+
+```{r}
+reg0 = lm(y~x, data=df)
+white = coeftest(reg0, vcov = function(x) vcovHC(x, method="white1", type="HC1"))
+white
+```
+
+## OLS with Newey-West
+- https://en.wikipedia.org/wiki/Newey%E2%80%93West_estimator
+
+```{r}
+reg0 = lm(y~x, data=df)
+newey = coeftest(reg0, vcov = NeweyWest(reg0))
+newey
+```
+
+## OLS clustered by Firm
+
+```{r}
+reg1 = plm(y~x, model="pooling", index=c("firm", "year"), data=df)
+cluster.firm = coeftest(reg1, vcov = function(x) vcovHC(x, cluster="group", type="HC1"))
+cluster.firm
+```
+
+## OLS clustered by Time (Year), R Project Setup
+
+```{r}
+reg1 = plm(y~x, model="pooling", index=c("firm", "year"), data=df)
+cluster.time.R = coeftest(reg1, vcov = function(x) vcovHC(x, cluster="time", type="HC1"))
+cluster.time.R
+```
+
+## OLS clustered by Time (Year), STATA Setup
+
+```{r}
+reg1 = plm(y~x, model="pooling", index=c("firm", "year"), data=df)
+cluster.time.stata = coeftest(reg1, vcov = function(x) vcovHC(x, method=c("arellano"), type=c("sss"), cluster = c("time"))) 
+
+cluster.time.stata
+```
+
+## OLS clustered by Firm and Year - STATA Default
+
+```{r}
+vcovDC = function(x, ...){
+    vcovHC(x, cluster="group", ...) + 
+      vcovHC(x, method=c("arellano"), type=c("sss"),cluster = c("time"), ...) - 
+      vcovHC(x, method="white1", ...)
+  }
+reg1 = plm(y~x, model="pooling", index=c("firm", "year"), data=df)
+cluster.double = coeftest(reg1, vcov = function(x) vcovDC(x))
+cluster.double
+```
+
+# Fama-MacBeth Regression
+
+- https://en.wikipedia.org/wiki/Fama%E2%80%93MacBeth_regression- 
+
+
+```{r}
+fmb = pmg(y~x, df, index=c("year","firm"))
+FMB = coeftest(fmb)
+FMB
+```
+
+```{r results = "asis"}
+stargazer::stargazer(ols,white,newey,cluster.time.R, cluster.time.stata,cluster.firm,cluster.double,FMB,type = "html", column.labels = c("OLS", "White", "NW","C.T(R)","C.T(S)", "C.F", "C.FT","FM"),
+ title = "Adjusting Standard Errors")
+```
+
+
+
+
+# Petersen's Results
+
+- https://www.kellogg.northwestern.edu/faculty/petersen/htm/papers/se/test_data.htm
+
+
