@@ -1,5 +1,5 @@
 ---
-title: "Estimating standard errors clustered by firm and time (Petersen, RFS 2009)"
+title: "Estimating standard errors double-clustered by firm and time (Petersen, RFS 2009)"
 output: html_document
 ---
 
@@ -47,7 +47,7 @@ knitr::opts_chunk$set(echo = TRUE)
 - https://www.kellogg.northwestern.edu/faculty/petersen/htm/papers/standarderror.html
 
 
-This note demonstrates how to calculate standard errors clustered by firm and time in R project, following Petersen (RFS, 2009).
+This note demonstrates how to calculate standard errors double-clustered by firm and time in R project, following Petersen (RFS, 2009).
 
 ```{r, message=FALSE}
 rm(list=ls());
