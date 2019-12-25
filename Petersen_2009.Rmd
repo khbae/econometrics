@@ -1,5 +1,5 @@
 ---
-title: "Estimate standard errors clustered by firm and time (Petersen, RFS 2009)"
+title: "Estimating standard errors clustered by firm and time (Petersen, RFS 2009)"
 output: html_document
 ---
 
